@@ -1,10 +1,5 @@
-set whoami to do shell script "whoami"
-set HomeFolder to (path to current user folder)
-set RootFolder to (path to current user folder)
-set FileName to "image" & (year of (current date)) & "." & (month of (current date)) & "." & (day of (current date)) & "." & (time of (current date))
-
+global PHOTO_NAME
 global PHOTO_LOCATION
-set PHOTO_LOCATION to ("/Users/" & whoami & "/" & FileName & ".jpg")
 
 on setup()
 	set ffmpegFolder to "/usr/local/Cellar/ffmpeg"
@@ -14,6 +9,11 @@ on setup()
 			do shell script "/usr/local/bin/brew install ffmpeg"
 		end if
 	end tell
+	set whoami to do shell script "whoami"
+	set HomeFolder to (path to current user folder)
+	set RootFolder to (path to current user folder)
+	set PHOTO_NAME to "image" & (year of (current date)) & "." & (month of (current date)) & "." & (day of (current date)) & "." & (time of (current date))
+	set PHOTO_LOCATION to ("/Users/" & whoami & "/" & PHOTO_NAME & ".jpg")
 end setup
 
 on copyScreenshotToClipboard()
@@ -27,6 +27,7 @@ end copyScreenshotToClipboard
 
 on focusSlackAndSend()
 	--need to find a subtler way to extract the photos...
+	--uploadToS3 should be better; keeping this around for funs 
 	tell application "Slack" to activate
 	tell application "System Events" to keystroke "k" using command down
 	tell application "System Events" to keystroke "pete"
@@ -38,22 +39,21 @@ on focusSlackAndSend()
 	tell application "System Events" to key code 76
 end focusSlackAndSend
 
+on uploadToS3()
+	do shell script "/usr/local/bin/aws s3 cp " & PHOTO_LOCATION & " s3://pdavidstestimages/$(whoami)/" & PHOTO_NAME
+end uploadToS3
+
 on teardown()
 	tell application "System Events" to delete alias PHOTO_LOCATION
-	tell application "System Events"
-		key down command
-		keystroke tab
-		key up command
-	end tell
 end teardown
 
 on main()
 	setup()
 	copyScreenshotToClipboard()
-	focusSlackAndSend()
+	uploadToS3()
 	teardown()
 end main
 
 repeat
-main()
+	main()
 end repeat
