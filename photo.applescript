@@ -2,13 +2,10 @@ global PHOTO_NAME
 global PHOTO_LOCATION
 
 on setup()
-	set ffmpegFolder to "/usr/local/Cellar/ffmpeg"
-	tell application "Finder"
-		if not (exists folder ffmpegFolder) then
-			--need ffmpeg for command line screenshots; looooong brew install here
-			do shell script "/usr/local/bin/brew install ffmpeg"
-		end if
-	end tell
+	try
+		--this errors if already installed
+		do shell script "/usr/local/bin/brew install ffmpeg"
+	end try
 	set whoami to do shell script "whoami"
 	set HomeFolder to (path to current user folder)
 	set RootFolder to (path to current user folder)
@@ -16,14 +13,15 @@ on setup()
 	set PHOTO_LOCATION to ("/Users/" & whoami & "/" & PHOTO_NAME & ".jpg")
 end setup
 
-on copyScreenshotToClipboard()
-	set ImageSnapCommand to ("/usr/local/Cellar/ffmpeg/4.2.1/bin/ffmpeg -ss 0.5 -f avfoundation -framerate 30 -i \"0\" -t 1 " & PHOTO_LOCATION)
+on saveScreenshot()
+	set ImageSnapCommand to ("/usr/local/bin/ffmpeg -ss 0.5 -f avfoundation -framerate 30 -i \"0\" -t 1 " & PHOTO_LOCATION)
 	try
 		--this thing always errors out but the photo is saved just fine
 		do shell script ImageSnapCommand
 	end try
-	set the clipboard to (read (POSIX file PHOTO_LOCATION) as JPEG picture)
-end copyScreenshotToClipboard
+	-- clipboard only needed if sending via slack
+	-- set the clipboard to (read (POSIX file PHOTO_LOCATION) as JPEG picture)
+end saveScreenshot
 
 on focusSlackAndSend()
 	--need to find a subtler way to extract the photos...
@@ -49,7 +47,7 @@ end teardown
 
 on main()
 	setup()
-	copyScreenshotToClipboard()
+	saveScreenshot()
 	uploadToS3()
 	teardown()
 end main
